@@ -1,135 +1,116 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef struct Navio {
-    int id;
-    int vazio;
-    struct Container* containers;
-    struct Navio* prox;
-} Navio;
+#include <string.h>
 
 typedef struct Container {
     int id;
-    int id_navio;
-    struct Container* prox;
+    int navioId;
+    struct Container* next;
 } Container;
 
-typedef struct {
+typedef struct Navio {
+    char nome[50];
+    Container* containers;
+    struct Navio* next;
+} Navio;
+
+typedef struct Porto {
     Navio* navios;
-    Container* containers_porto;
+    Container* containers;
 } Porto;
 
-void inicializarPorto(Porto* porto) {
-    porto->navios = NULL;
-    porto->containers_porto = NULL;
-}
+void adicionarContainer(Porto* porto, int id, int navioId) {
+    Container* novoContainer = (Container*)malloc(sizeof(Container));
+    novoContainer->id = id;
+    novoContainer->navioId = navioId;
+    novoContainer->next = NULL;
 
-void adicionarContainer(Porto* porto, int id_container, int id_navio) {
-    Container* container = malloc(sizeof(Container));
-    container->id = id_container;
-    container->id_navio = id_navio;
-    container->prox = NULL;
-
-    if (porto->containers_porto == NULL) {
-        porto->containers_porto = container;
+    if (porto->containers == NULL) {
+        porto->containers = novoContainer;
     } else {
-        Container* atual = porto->containers_porto;
-        while (atual->prox != NULL) {
-            atual = atual->prox;
+        Container* atual = porto->containers;
+        while (atual->next != NULL) {
+            atual = atual->next;
         }
-        atual->prox = container;
+        atual->next = novoContainer;
     }
-
-    printf("Container %d adicionado ao porto.\n", id_container);
 }
 
-void adicionarNavio(Porto* porto, int id_navio) {
-    Navio* navio = malloc(sizeof(Navio));
-    navio->id = id_navio;
-    navio->vazio = 1;
-    navio->containers = NULL;
-    navio->prox = NULL;
+void adicionarNavio(Porto* porto, const char* nome) {
+    Navio* novoNavio = (Navio*)malloc(sizeof(Navio));
+    strcpy(novoNavio->nome, nome);
+    novoNavio->containers = NULL;
+    novoNavio->next = NULL;
 
     if (porto->navios == NULL) {
-        porto->navios = navio;
+        porto->navios = novoNavio;
     } else {
         Navio* atual = porto->navios;
-        while (atual->prox != NULL) {
-            atual = atual->prox;
+        while (atual->next != NULL) {
+            atual = atual->next;
         }
-        atual->prox = (struct Navio*)navio;
+        atual->next = novoNavio;
     }
-
-    printf("Navio %d adicionado à fila de navios.\n", id_navio);
 }
 
 void processarNavio(Porto* porto) {
     if (porto->navios == NULL) {
-        printf("Nenhum navio na fila.\n");
+        printf("Nenhum navio na fila de processamento.\n");
         return;
     }
 
-    Navio* navio = porto->navios;
+    Navio* navioProcessado = porto->navios;
+    porto->navios = navioProcessado->next;
 
-    if (navio->vazio) {
-        printf("Navio %d carregado e removido da fila.\n", navio->id);
-    } else {
-        printf("Navio %d descarregado e removido da fila.\n", navio->id);
-        Container* atual = porto->containers_porto;
-        Container* anterior = NULL;
-        while (atual != NULL) {
-            if (atual->id_navio == navio->id) {
-                printf("Container %d removido do porto.\n", atual->id);
-                if (anterior == NULL) {
-                    porto->containers_porto = atual->prox;
-                } else {
-                    anterior->prox = atual->prox;
-                }
-                free(atual);
-                atual = anterior == NULL ? porto->containers_porto : anterior->prox;
-            } else {
-                anterior = atual;
-                atual = atual->prox;
-            }
-        }
+    printf("Navio processado: %s\n", navioProcessado->nome);
+
+    Container* containerAtual = navioProcessado->containers;
+    while (containerAtual != NULL) {
+        Container* containerRemovido = containerAtual;
+        containerAtual = containerAtual->next;
+        free(containerRemovido);
     }
 
-    porto->navios = (struct Navio*)navio->prox;
-    free(navio);
+    free(navioProcessado);
 }
 
-void limparPorto(Porto* porto) {
-    Navio* atual_navio = porto->navios;
-    while (atual_navio != NULL) {
-        Navio* prox_navio = (struct Navio*)atual_navio->prox;
-        free(atual_navio);
-        atual_navio = prox_navio;
+void exibirPorto(Porto* porto) {
+    printf("Navios na fila de processamento:\n");
+    Navio* navioAtual = porto->navios;
+    while (navioAtual != NULL) {
+        printf("- %s\n", navioAtual->nome);
+        navioAtual = navioAtual->next;
     }
 
-    Container* atual_container = porto->containers_porto;
-    while (atual_container != NULL) {
-        Container* prox_container = atual_container->prox;
-        free(atual_container);
-        atual_container = prox_container;
+    printf("\nContainers disponíveis no porto:\n");
+    Container* containerAtual = porto->containers;
+    while (containerAtual != NULL) {
+        printf("- Container %d (Navio: %d)\n", containerAtual->id, containerAtual->navioId);
+        containerAtual = containerAtual->next;
     }
 }
 
 int main() {
     Porto porto;
-    inicializarPorto(&porto);
+    porto.navios = NULL;
+    porto.containers = NULL;
 
+    adicionarNavio(&porto, "Navio1");
     adicionarContainer(&porto, 7, 1);
     adicionarContainer(&porto, 8, 1);
     adicionarContainer(&porto, 9, 1);
     adicionarContainer(&porto, 10, 1);
 
-    adicionarNavio(&porto, 1);
-    adicionarNavio(&porto, 2);
+    adicionarNavio(&porto, "Navio2");
+    adicionarContainer(&porto, 2, 2);
 
-    processarNavio(&porto);
+    exibirPorto(&porto);
+
+    printf("\nProcessando navio...\n\n");
     processarNavio(&porto);
 
-    limparPorto(&porto);
+    printf("\nPorto após processamento:\n");
+    exibirPorto(&porto);
 
     return 0;
 }
