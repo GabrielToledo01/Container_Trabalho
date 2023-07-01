@@ -10,38 +10,51 @@ typedef struct {
 } Container;
 
 typedef struct node {
-    char identificador[50];
-    Container containers[100];
-    int numContainers;
+    Container container;
     struct node* next;
-} NavioNode;
+} ContainerNode;
 
-NavioNode* navios = NULL;
+typedef struct {
+    char identificador[50];
+    ContainerNode* containers;
+} Navio;
 
-Container porto[100];
-int numContainers = 0;
+typedef struct queue {
+    Navio navio;
+    struct queue* next;
+} QueueNode;
+
+ContainerNode* porto = NULL;
+QueueNode* filaNavios = NULL;
 
 void adicionarContainer(int id, const char* origem, const char* destino, const char* tipoCarga) {
-    if (numContainers < 100) {
-        Container novoContainer;
-        novoContainer.id = id;
-        strcpy(novoContainer.origem, origem);
-        strcpy(novoContainer.destino, destino);
-        strcpy(novoContainer.tipoCarga, tipoCarga);
+    ContainerNode* novoContainer = (ContainerNode*)malloc(sizeof(ContainerNode));
+    novoContainer->container.id = id;
+    strcpy(novoContainer->container.origem, origem);
+    strcpy(novoContainer->container.destino, destino);
+    strcpy(novoContainer->container.tipoCarga, tipoCarga);
+    novoContainer->next = NULL;
 
-        porto[numContainers] = novoContainer;
-        numContainers++;
-        printf("Contêiner adicionado com sucesso.\n");
+    if (porto == NULL) {
+        porto = novoContainer;
     } else {
-        printf("O limite máximo de contêineres foi atingido.\n");
+        ContainerNode* temp = porto;
+        while (temp->next != NULL) {
+            temp = temp->next;
+        }
+        temp->next = novoContainer;
     }
+
+    printf("Contêiner adicionado com sucesso.\n");
 }
 
 void listarContainers() {
     printf("ID\tOrigem\t\tDestino\t\tTipo de Carga\n");
-    for (int i = 0; i < numContainers; i++) {
-        Container container = porto[i];
+    ContainerNode* temp = porto;
+    while (temp != NULL) {
+        Container container = temp->container;
         printf("%d\t%s\t\t%s\t\t%s\n", container.id, container.origem, container.destino, container.tipoCarga);
+        temp = temp->next;
     }
 }
 
@@ -76,9 +89,9 @@ void chegadaMaritima() {
     printf("Digite o número de containers que o navio está transportando: ");
     scanf("%d", &numContainers);
 
-    NavioNode* novoNavio = (NavioNode*)malloc(sizeof(NavioNode));
-    strcpy(novoNavio->identificador, identificador);
-    novoNavio->numContainers = numContainers;
+    Navio novoNavio;
+    strcpy(novoNavio.identificador, identificador);
+    novoNavio.containers = NULL;
 
     printf("Digite os detalhes dos containers:\n");
     for (int i = 0; i < numContainers; i++) {
@@ -101,46 +114,68 @@ void chegadaMaritima() {
         printf("Digite o tipo de carga: ");
         scanf("%s", tipoCarga);
 
-        Container novoContainer;
-        novoContainer.id = id;
-        strcpy(novoContainer.origem, origem);
-        strcpy(novoContainer.destino, destino);
-        strcpy(novoContainer.tipoCarga, tipoCarga);
+        ContainerNode* novoContainer = (ContainerNode*)malloc(sizeof(ContainerNode));
+        novoContainer->container.id = id;
+        strcpy(novoContainer->container.origem, origem);
+        strcpy(novoContainer->container.destino, destino);
+        strcpy(novoContainer->container.tipoCarga, tipoCarga);
+        novoContainer->next = NULL;
 
-        novoNavio->containers[i] = novoContainer;
+        if (novoNavio.containers == NULL) {
+            novoNavio.containers = novoContainer;
+        } else {
+            ContainerNode* temp = novoNavio.containers;
+            while (temp->next != NULL) {
+                temp = temp->next;
+            }
+            temp->next = novoContainer;
+        }
     }
 
-    novoNavio->next = NULL;
+    QueueNode* novoNavioNode = (QueueNode*)malloc(sizeof(QueueNode));
+    novoNavioNode->navio = novoNavio;
+    novoNavioNode->next = NULL;
 
-    if (navios == NULL) {
-        navios = novoNavio;
+    if (filaNavios == NULL) {
+        filaNavios = novoNavioNode;
     } else {
-        NavioNode* temp = navios;
+        QueueNode* temp = filaNavios;
         while (temp->next != NULL) {
             temp = temp->next;
         }
-        temp->next = novoNavio;
+        temp->next = novoNavioNode;
     }
 
     printf("Navio adicionado com sucesso.\n");
 }
 
 void processarNavio() {
-    if (navios == NULL) {
+    if (filaNavios == NULL) {
         printf("Não há navios na fila para processar.\n");
         return;
     }
 
-    NavioNode* navioProcessado = navios;
-    navios = navios->next;
+    QueueNode* navioProcessado = filaNavios;
+    filaNavios = filaNavios->next;
 
     printf("Navio processado:\n");
-    printf("Identificador: %s\n", navioProcessado->identificador);
-    printf("Número de containers: %d\n", navioProcessado->numContainers);
+    printf("Identificador: %s\n", navioProcessado->navio.identificador);
+    printf("Número de containers: ");
+    int numContainers = 0;
+    ContainerNode* temp = navioProcessado->navio.containers;
+    while (temp != NULL) {
+        numContainers++;
+        temp = temp->next;
+    }
+    printf("%d\n", numContainers);
     printf("Containers:\n");
-    for (int i = 0; i < navioProcessado->numContainers; i++) {
-        Container container = navioProcessado->containers[i];
+    temp = navioProcessado->navio.containers;
+    while (temp != NULL) {
+        Container container = temp->container;
         printf("ID: %d\tOrigem: %s\tDestino: %s\tTipo de Carga: %s\n", container.id, container.origem, container.destino, container.tipoCarga);
+        ContainerNode* next = temp->next;
+        free(temp);
+        temp = next;
     }
 
     free(navioProcessado);
