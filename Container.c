@@ -1,18 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct Navio {
+    int id;
+    int vazio;
+    struct Container* containers;
+    struct Navio* prox;
+} Navio;
+
 typedef struct Container {
     int id;
     int id_navio;
     struct Container* prox;
 } Container;
-
-typedef struct {
-    int id;
-    int vazio;
-    Container* containers;
-    struct Navio* prox;
-} Navio;
 
 typedef struct {
     Navio* navios;
@@ -57,7 +57,7 @@ void adicionarNavio(Porto* porto, int id_navio) {
         while (atual->prox != NULL) {
             atual = atual->prox;
         }
-        atual->prox = navio;
+        atual->prox = (struct Navio*)navio;
     }
 
     printf("Navio %d adicionado à fila de navios.\n", id_navio);
@@ -94,14 +94,14 @@ void processarNavio(Porto* porto) {
         }
     }
 
-    porto->navios = navio->prox;
+    porto->navios = (struct Navio*)navio->prox;
     free(navio);
 }
 
 void limparPorto(Porto* porto) {
     Navio* atual_navio = porto->navios;
     while (atual_navio != NULL) {
-        Navio* prox_navio = atual_navio->prox;
+        Navio* prox_navio = (struct Navio*)atual_navio->prox;
         free(atual_navio);
         atual_navio = prox_navio;
     }
