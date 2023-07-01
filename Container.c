@@ -2,115 +2,186 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Container {
+typedef struct {
     int id;
-    int navioId;
-    struct Container* next;
+    char origem[50];
+    char destino[50];
+    char tipoCarga[50];
 } Container;
 
-typedef struct Navio {
-    char nome[50];
-    Container* containers;
-    struct Navio* next;
-} Navio;
+typedef struct node {
+    char identificador[50];
+    Container containers[100];
+    int numContainers;
+    struct node* next;
+} NavioNode;
 
-typedef struct Porto {
-    Navio* navios;
-    Container* containers;
-} Porto;
+NavioNode* navios = NULL;
 
-void adicionarContainer(Porto* porto, int id, int navioId) {
-    Container* novoContainer = (Container*)malloc(sizeof(Container));
-    novoContainer->id = id;
-    novoContainer->navioId = navioId;
-    novoContainer->next = NULL;
+Container porto[100];
+int numContainers = 0;
 
-    if (porto->containers == NULL) {
-        porto->containers = novoContainer;
+void adicionarContainer(int id, const char* origem, const char* destino, const char* tipoCarga) {
+    if (numContainers < 100) {
+        Container novoContainer;
+        novoContainer.id = id;
+        strcpy(novoContainer.origem, origem);
+        strcpy(novoContainer.destino, destino);
+        strcpy(novoContainer.tipoCarga, tipoCarga);
+
+        porto[numContainers] = novoContainer;
+        numContainers++;
+        printf("Contêiner adicionado com sucesso.\n");
     } else {
-        Container* atual = porto->containers;
-        while (atual->next != NULL) {
-            atual = atual->next;
-        }
-        atual->next = novoContainer;
+        printf("O limite máximo de contêineres foi atingido.\n");
     }
 }
 
-void adicionarNavio(Porto* porto, const char* nome) {
-    Navio* novoNavio = (Navio*)malloc(sizeof(Navio));
-    strcpy(novoNavio->nome, nome);
-    novoNavio->containers = NULL;
+void listarContainers() {
+    printf("ID\tOrigem\t\tDestino\t\tTipo de Carga\n");
+    for (int i = 0; i < numContainers; i++) {
+        Container container = porto[i];
+        printf("%d\t%s\t\t%s\t\t%s\n", container.id, container.origem, container.destino, container.tipoCarga);
+    }
+}
+
+void chegadaTerrestre() {
+    int id;
+    char origem[50];
+    char destino[50];
+    char tipoCarga[50];
+
+    printf("Digite o ID do contêiner: ");
+    scanf("%d", &id);
+
+    printf("Digite a origem: ");
+    scanf("%s", origem);
+
+    printf("Digite o destino: ");
+    scanf("%s", destino);
+
+    printf("Digite o tipo de carga: ");
+    scanf("%s", tipoCarga);
+
+    adicionarContainer(id, origem, destino, tipoCarga);
+}
+
+void chegadaMaritima() {
+    char identificador[50];
+    int numContainers;
+
+    printf("Digite o identificador do navio: ");
+    scanf("%s", identificador);
+
+    printf("Digite o número de containers que o navio está transportando: ");
+    scanf("%d", &numContainers);
+
+    NavioNode* novoNavio = (NavioNode*)malloc(sizeof(NavioNode));
+    strcpy(novoNavio->identificador, identificador);
+    novoNavio->numContainers = numContainers;
+
+    printf("Digite os detalhes dos containers:\n");
+    for (int i = 0; i < numContainers; i++) {
+        int id;
+        char origem[50];
+        char destino[50];
+        char tipoCarga[50];
+
+        printf("Container %d:\n", i + 1);
+
+        printf("Digite o ID do contêiner: ");
+        scanf("%d", &id);
+
+        printf("Digite a origem: ");
+        scanf("%s", origem);
+
+        printf("Digite o destino: ");
+        scanf("%s", destino);
+
+        printf("Digite o tipo de carga: ");
+        scanf("%s", tipoCarga);
+
+        Container novoContainer;
+        novoContainer.id = id;
+        strcpy(novoContainer.origem, origem);
+        strcpy(novoContainer.destino, destino);
+        strcpy(novoContainer.tipoCarga, tipoCarga);
+
+        novoNavio->containers[i] = novoContainer;
+    }
+
     novoNavio->next = NULL;
 
-    if (porto->navios == NULL) {
-        porto->navios = novoNavio;
+    if (navios == NULL) {
+        navios = novoNavio;
     } else {
-        Navio* atual = porto->navios;
-        while (atual->next != NULL) {
-            atual = atual->next;
+        NavioNode* temp = navios;
+        while (temp->next != NULL) {
+            temp = temp->next;
         }
-        atual->next = novoNavio;
+        temp->next = novoNavio;
     }
+
+    printf("Navio adicionado com sucesso.\n");
 }
 
-void processarNavio(Porto* porto) {
-    if (porto->navios == NULL) {
-        printf("Nenhum navio na fila de processamento.\n");
+void processarNavio() {
+    if (navios == NULL) {
+        printf("Não há navios na fila para processar.\n");
         return;
     }
 
-    Navio* navioProcessado = porto->navios;
-    porto->navios = navioProcessado->next;
+    NavioNode* navioProcessado = navios;
+    navios = navios->next;
 
-    printf("Navio processado: %s\n", navioProcessado->nome);
-
-    Container* containerAtual = navioProcessado->containers;
-    while (containerAtual != NULL) {
-        Container* containerRemovido = containerAtual;
-        containerAtual = containerAtual->next;
-        free(containerRemovido);
+    printf("Navio processado:\n");
+    printf("Identificador: %s\n", navioProcessado->identificador);
+    printf("Número de containers: %d\n", navioProcessado->numContainers);
+    printf("Containers:\n");
+    for (int i = 0; i < navioProcessado->numContainers; i++) {
+        Container container = navioProcessado->containers[i];
+        printf("ID: %d\tOrigem: %s\tDestino: %s\tTipo de Carga: %s\n", container.id, container.origem, container.destino, container.tipoCarga);
     }
 
     free(navioProcessado);
 }
 
-void exibirPorto(Porto* porto) {
-    printf("Navios na fila de processamento:\n");
-    Navio* navioAtual = porto->navios;
-    while (navioAtual != NULL) {
-        printf("- %s\n", navioAtual->nome);
-        navioAtual = navioAtual->next;
-    }
+void exibirMenu() {
+    int opcao;
+    do {
+        printf("\n");
+        printf("=== Sistema Portuário ===\n");
+        printf("1. Registrar chegada de contêiner por via terrestre\n");
+        printf("2. Registrar chegada de contêiner por via marítima\n");
+        printf("3. Listar contêineres presentes no porto\n");
+        printf("4. Processar próximo navio\n");
+        printf("0. Sair\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
 
-    printf("\nContainers disponíveis no porto:\n");
-    Container* containerAtual = porto->containers;
-    while (containerAtual != NULL) {
-        printf("- Container %d (Navio: %d)\n", containerAtual->id, containerAtual->navioId);
-        containerAtual = containerAtual->next;
-    }
+        switch (opcao) {
+            case 1:
+                chegadaTerrestre();
+                break;
+            case 2:
+                chegadaMaritima();
+                break;
+            case 3:
+                listarContainers();
+                break;
+            case 4:
+                processarNavio();
+                break;
+            case 0:
+                printf("Saindo do programa.\n");
+                break;
+            default:
+                printf("Opção inválida.\n");
+        }
+    } while (opcao != 0);
 }
 
 int main() {
-    Porto porto;
-    porto.navios = NULL;
-    porto.containers = NULL;
-
-    adicionarNavio(&porto, "Navio1");
-    adicionarContainer(&porto, 7, 1);
-    adicionarContainer(&porto, 8, 1);
-    adicionarContainer(&porto, 9, 1);
-    adicionarContainer(&porto, 10, 1);
-
-    adicionarNavio(&porto, "Navio2");
-    adicionarContainer(&porto, 2, 2);
-
-    exibirPorto(&porto);
-
-    printf("\nProcessando navio...\n\n");
-    processarNavio(&porto);
-
-    printf("\nPorto após processamento:\n");
-    exibirPorto(&porto);
-
+    exibirMenu();
     return 0;
 }
